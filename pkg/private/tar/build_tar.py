@@ -90,7 +90,7 @@ class TarFile(object):
     """
     dest = self.normalize_path(destfile)
     # If mode is unspecified, derive the mode from the file's mode.
-    if self.preserve_mode:
+    if self.preserve_mode is True:
       mode = stat.S_IMODE(os.stat(f).st_mode)
     else:
       if mode is None:     
@@ -375,7 +375,7 @@ def main():
       help='Specify the owner names of individual files, e.g. '
            'path/to/file=root.root.')
   parser.add_argument(
-      '--preserve_mode', action='store_false',
+      '--preserve_mode', default='False', action='store_true',
       help='Preserve original file permissions in the archive.'
            'Mode argument is ignored.')
   parser.add_argument('--stamp_from', default='',
