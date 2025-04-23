@@ -197,6 +197,9 @@ def _pkg_tar_impl(ctx):
         args.add("--stamp_from", ctx.version_file.path)
         files.append(ctx.version_file)
 
+    if ctx.attr.preserve_mode:
+        args.add("--preserve_mode")
+
     manifest_file = ctx.actions.declare_file(ctx.label.name + ".manifest")
     files.append(manifest_file)
     write_manifest(ctx, manifest_file, content_map)
@@ -277,6 +280,10 @@ pkg_tar_impl = rule(
         "package_variables": attr.label(
             doc = "See Common Attributes",
             providers = [PackageVariablesInfo],
+        ),
+        "preserve_mode": attr.bool(
+            default = False,
+            doc = """If true, will add file to archive with preserved file permissions.""",
         ),
         "stamp": attr.int(
             doc = """Enable file time stamping.  Possible values:

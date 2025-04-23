@@ -15,6 +15,7 @@
 
 import argparse
 import os
+import stat
 import tarfile
 import tempfile
 
@@ -42,7 +43,7 @@ class TarFile(object):
   class DebError(Exception):
     pass
 
-  def __init__(self, output, directory, compression, compressor, default_mtime):
+  def __init__(self, output, directory, compression, compressor, default_mtime, preserve_mode):
     # Directory prefix on all output paths
     d = directory.strip('/')
     self.directory = (d + '/') if d else None
@@ -50,6 +51,7 @@ class TarFile(object):
     self.compression = compression
     self.compressor = compressor
     self.default_mtime = default_mtime
+    self.preserve_mode = preserve_mode
 
   def __enter__(self):
     self.tarfile = tar_writer.TarFileWriter(
@@ -88,8 +90,11 @@ class TarFile(object):
     """
     dest = self.normalize_path(destfile)
     # If mode is unspecified, derive the mode from the file's mode.
-    if mode is None:
-      mode = 0o755 if os.access(f, os.X_OK) else 0o644
+    if self.preserve_mode:
+      mode = stat.S_IMODE(os.stat(f).st_mode)
+    else:
+      if mode is None:     
+        mode = 0o755 if os.access(f, os.X_OK) else 0o644
     if ids is None:
       ids = (0, 0)
     if names is None:
@@ -369,6 +374,10 @@ def main():
       '--owner_names', action='append',
       help='Specify the owner names of individual files, e.g. '
            'path/to/file=root.root.')
+  parser.add_argument(
+      '--preserve_mode', action='store_false',
+      help='Preserve original file permissions in the archive.'
+           'Mode argument is ignored.')
   parser.add_argument('--stamp_from', default='',
                       help='File to find BUILD_STAMP in')
   options = parser.parse_args()
@@ -420,7 +429,8 @@ def main():
       directory = helpers.GetFlagValue(options.directory),
       compression = options.compression,
       compressor = options.compressor,
-      default_mtime=default_mtime) as output:
+      default_mtime=default_mtime,
+      preserve_mode = options.preserve_mode) as output:
 
     def file_attributes(filename):
       if filename.startswith('/'):
